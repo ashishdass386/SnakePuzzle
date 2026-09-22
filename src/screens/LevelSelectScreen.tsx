@@ -25,6 +25,7 @@ import { loadProgress } from '../storage/GameStorage';
 import { GameProgress } from '../game/types';
 import { playSound } from '../audio/AudioManager';
 import { getBoardTheme } from '../utils/themes';
+import { AppBannerAd } from '../components/AppBannerAd';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LevelSelect'>;
 
@@ -192,6 +193,9 @@ export const LevelSelectScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.pageBtnText}>Next ›</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Banner Ad */}
+      <AppBannerAd />
     </View>
   );
 };

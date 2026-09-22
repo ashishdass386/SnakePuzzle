@@ -1,4 +1,8 @@
 {
   "name": "SnakePuzzle",
-  "displayName": "SnakePuzzle"
+  "displayName": "SnakePuzzle",
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-7503400330650109~9977886732",
+    "ios_app_id": "ca-app-pub-7503400330650109~9977886732"
+  }
 }

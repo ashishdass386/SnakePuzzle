@@ -1,22 +1,19 @@
 /**
- * AdManager — placeholder AdMob integration architecture.
- *
- * Replace placeholder IDs in constants.ts with real AdMob unit IDs
- * and install react-native-google-mobile-ads before enabling real ads.
- *
- * This file isolates all ad logic from the game engine.
+ * AdManager — Google AdMob integration for Interstitial and Banner ads.
  */
 
 import { Platform } from 'react-native';
+import mobileAds, {
+  InterstitialAd,
+  AdEventType,
+  TestIds,
+} from 'react-native-google-mobile-ads';
 import { ADMOB_CONFIG } from '../utils/constants';
 
-// ─── Simulated Ad State ───────────────────────────────────────────────────────
-// In production, replace with actual react-native-google-mobile-ads calls.
-
-let interstitialLevelCount = 0;
-let adsEnabled = false; // Set to true when real ads are integrated
-
-// ─── Ad Unit IDs ─────────────────────────────────────────────────────────────
+let interstitialAd: InterstitialAd | null = null;
+let isInterstitialLoaded = false;
+let isInterstitialLoading = false;
+let adInitialized = false;
 
 export function getInterstitialAdUnitId(): string {
   return Platform.OS === 'android'
@@ -24,62 +21,108 @@ export function getInterstitialAdUnitId(): string {
     : ADMOB_CONFIG.INTERSTITIAL_IOS;
 }
 
-export function getRewardedAdUnitId(): string {
+export function getBannerAdUnitId(): string {
   return Platform.OS === 'android'
-    ? ADMOB_CONFIG.REWARDED_ANDROID
-    : ADMOB_CONFIG.REWARDED_IOS;
+    ? ADMOB_CONFIG.BANNER_ANDROID
+    : ADMOB_CONFIG.BANNER_IOS;
 }
 
-// ─── Interstitial Ad ─────────────────────────────────────────────────────────
-
-/**
- * Call this when a level is completed.
- * Shows an interstitial every N levels.
- */
-export async function onLevelComplete(): Promise<void> {
-  interstitialLevelCount++;
-  if (!adsEnabled) return;
-
-  if (interstitialLevelCount % ADMOB_CONFIG.SHOW_INTERSTITIAL_EVERY_N_LEVELS === 0) {
-    await showInterstitialAd();
+export async function initAdMob(): Promise<void> {
+  if (adInitialized) return;
+  try {
+    console.log('[AdManager] Initializing Google Mobile Ads SDK...');
+    const adapterStatuses = await mobileAds().initialize();
+    console.log('[AdManager] AdMob initialized:', adapterStatuses);
+    adInitialized = true;
+    loadInterstitialAd();
+  } catch (e) {
+    console.log('[AdManager] initAdMob error:', e);
   }
 }
 
-async function showInterstitialAd(): Promise<void> {
-  console.log('[AdManager] Would show interstitial ad here');
-  // TODO: Implement with react-native-google-mobile-ads:
-  //
-  // import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
-  // const ad = InterstitialAd.createForAdRequest(getInterstitialAdUnitId());
-  // const unsubscribe = ad.addAdEventListener(AdEventType.LOADED, () => ad.show());
-  // ad.load();
-}
+export function loadInterstitialAd(): void {
+  if (isInterstitialLoaded || isInterstitialLoading) return;
 
-// ─── Rewarded Ad ─────────────────────────────────────────────────────────────
+  const adUnitId = getInterstitialAdUnitId();
+  try {
+    console.log('[AdManager] Loading Interstitial Ad for unit:', adUnitId);
+    isInterstitialLoading = true;
+    interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
+      requestNonPersonalizedAdsOnly: true,
+    });
+
+    const unsubscribeLoaded = interstitialAd.addAdEventListener(
+      AdEventType.LOADED,
+      () => {
+        console.log('[AdManager] Interstitial Ad Loaded successfully');
+        isInterstitialLoaded = true;
+        isInterstitialLoading = false;
+        unsubscribeLoaded();
+      },
+    );
+
+    const unsubscribeError = interstitialAd.addAdEventListener(
+      AdEventType.ERROR,
+      (error: any) => {
+        console.log('[AdManager] Interstitial error:', error);
+        isInterstitialLoaded = false;
+        isInterstitialLoading = false;
+        unsubscribeError();
+      },
+    );
+
+    interstitialAd.load();
+  } catch (e) {
+    console.log('[AdManager] Failed to create interstitial:', e);
+    isInterstitialLoading = false;
+  }
+}
 
 /**
- * Shows a rewarded ad.
- * @param onReward  Called when the user earns the reward.
+ * Show interstitial ad if ready, then execute callback on dismiss/error.
+ * Immediately begins preloading the next interstitial.
  */
-export async function showRewardedAd(onReward: () => void): Promise<void> {
-  if (!adsEnabled) {
-    // In dev mode, just give the reward
-    onReward();
-    return;
+export async function showInterstitialAd(onDismiss?: () => void): Promise<void> {
+  if (interstitialAd && isInterstitialLoaded) {
+    let dismissed = false;
+
+    const handleClose = () => {
+      if (!dismissed) {
+        dismissed = true;
+        isInterstitialLoaded = false;
+        loadInterstitialAd();
+        onDismiss?.();
+      }
+    };
+
+    const unsubscribeClosed = interstitialAd.addAdEventListener(
+      AdEventType.CLOSED,
+      () => {
+        console.log('[AdManager] Interstitial Ad Closed');
+        unsubscribeClosed();
+        handleClose();
+      },
+    );
+
+    const unsubscribeError = interstitialAd.addAdEventListener(
+      AdEventType.ERROR,
+      (err: any) => {
+        console.log('[AdManager] Interstitial Ad show error event:', err);
+        unsubscribeError();
+        handleClose();
+      },
+    );
+
+    try {
+      console.log('[AdManager] Showing Interstitial Ad...');
+      await interstitialAd.show();
+    } catch (e) {
+      console.log('[AdManager] Error during interstitial show:', e);
+      handleClose();
+    }
+  } else {
+    console.log('[AdManager] Interstitial not ready yet, continuing flow. Loaded:', isInterstitialLoaded, 'Loading:', isInterstitialLoading);
+    loadInterstitialAd();
+    onDismiss?.();
   }
-
-  console.log('[AdManager] Would show rewarded ad here');
-  // TODO: Implement with react-native-google-mobile-ads:
-  //
-  // import { RewardedAd, RewardedAdEventType } from 'react-native-google-mobile-ads';
-  // const ad = RewardedAd.createForAdRequest(getRewardedAdUnitId());
-  // ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => onReward());
-  // ad.addAdEventListener(RewardedAdEventType.LOADED, () => ad.show());
-  // ad.load();
-}
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-export function setAdsEnabled(enabled: boolean): void {
-  adsEnabled = enabled;
 }

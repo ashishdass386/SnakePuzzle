@@ -15,7 +15,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Alert,
   TouchableOpacity,
   Platform,
   StatusBar,
@@ -30,12 +29,13 @@ import { GameBoard } from '../components/GameBoard';
 import { LevelHeader } from '../components/LevelHeader';
 import { GameButton } from '../components/GameButton';
 import { SnakeAnimationCommand } from '../components/Snake';
-import { THEME, ANIM_LEVEL_COMPLETE_DELAY, HINT_COST_COINS } from '../utils/constants';
-import { loadProgress, spendCoins, updateLevelProgress } from '../storage/GameStorage';
-import { calculateStars, calculateCoinsEarned, makeLevelProgress } from '../utils/helpers';
+import { THEME, ANIM_LEVEL_COMPLETE_DELAY } from '../utils/constants';
+import { updateLevelProgress } from '../storage/GameStorage';
+import { calculateStars, makeLevelProgress } from '../utils/helpers';
 import { playSound } from '../audio/AudioManager';
 import { triggerHaptic } from '../audio/HapticManager';
-import { onLevelComplete as adOnLevelComplete } from '../ads/AdManager';
+import { showInterstitialAd } from '../ads/AdManager';
+import { AppBannerAd } from '../components/AppBannerAd';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 
@@ -55,7 +55,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [snakes, setSnakes] = useState<SnakePiece[]>(levelConfig.snakes);
   const [snakeCommands, setSnakeCommands] = useState<Record<string, SnakeAnimationCommand>>({});
-  const [coins, setCoins] = useState(0);
+  const [hintsRemaining, setHintsRemaining] = useState(1);
   const [moveCount, setMoveCount] = useState(0);
   const [hintSnakeId, setHintSnakeId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -68,15 +68,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     setIsProcessing(false);
   }, [levelNumber]);
 
-  // Load / refresh coins on focus
-  useEffect(() => {
-    loadProgress().then(p => setCoins(p.coins));
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadProgress().then(p => setCoins(p.coins));
-    });
-    return unsubscribe;
-  }, [navigation]);
-
   // Regenerate engine when level config changes
   useEffect(() => {
     engineRef.current = new GameEngine(levelConfig);
@@ -84,6 +75,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     setSnakes(levelConfig.snakes);
     setSnakeCommands({});
     setMoveCount(0);
+    setHintsRemaining(1);
     setHintSnakeId(null);
     setIsProcessing(false);
   }, [levelConfig]);
@@ -150,44 +142,32 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
     playSound('complete');
     triggerHaptic('success');
-    await adOnLevelComplete();
 
     const state = engineRef.current.getState();
     const snakeCount = levelConfig.snakes.length;
     const stars = calculateStars(state.moveCount, state.hintsUsed, snakeCount);
-    const coinsEarned = calculateCoinsEarned(stars);
     const lp = makeLevelProgress(state, stars);
 
-    await updateLevelProgress(levelNumber, lp, coinsEarned);
+    await updateLevelProgress(levelNumber, lp);
 
     setTimeout(() => {
       navigation.replace('LevelComplete', {
         levelNumber,
         stars,
-        coinsEarned,
         moveCount: state.moveCount,
       });
     }, ANIM_LEVEL_COMPLETE_DELAY);
   };
 
-  // ── Hint ──────────────────────────────────────────────────────────────────
+  // ── Hint (1 per level) ────────────────────────────────────────────────────
 
-  const handleHint = async () => {
+  const handleHint = () => {
     if (isProcessing) return;
-
-    if (coins < HINT_COST_COINS) {
-      Alert.alert('Not enough coins!', `Hints cost ${HINT_COST_COINS} coins.`);
-      return;
-    }
-
-    const spent = await spendCoins(HINT_COST_COINS);
-    if (!spent) return;
-
-    const progress = await loadProgress();
-    setCoins(progress.coins);
+    if (hintsRemaining <= 0) return;
 
     const result = engineRef.current.useHint();
     if (result.found && result.snakeId) {
+      setHintsRemaining(0);
       playSound('hint');
       triggerHaptic('light');
       setHintSnakeId(result.snakeId);
@@ -207,16 +187,19 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  // ── Restart ────────────────────────────────────────────────────────────────
+  // ── Restart (Shows Interstitial Ad) ───────────────────────────────────────
 
   const handleRestart = () => {
-    levelCompleteTriggered.current = false;
-    engineRef.current.restart(levelConfig);
-    setSnakes(levelConfig.snakes);
-    setSnakeCommands({});
-    setMoveCount(0);
-    setHintSnakeId(null);
-    setIsProcessing(false);
+    showInterstitialAd(() => {
+      levelCompleteTriggered.current = false;
+      engineRef.current.restart(levelConfig);
+      setSnakes(levelConfig.snakes);
+      setSnakeCommands({});
+      setMoveCount(0);
+      setHintsRemaining(1);
+      setHintSnakeId(null);
+      setIsProcessing(false);
+    });
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -227,16 +210,8 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
       <LevelHeader
         levelNumber={levelNumber}
-        coins={coins}
-        theme={levelConfig.theme}
-        shapeType={levelConfig.boardSize.shapeType}
+        moveCount={moveCount}
       />
-
-      {/* Move counter */}
-      <View style={styles.movesRow}>
-        <Text style={styles.movesLabel}>Moves: </Text>
-        <Text style={styles.movesCount}>{moveCount}</Text>
-      </View>
 
       {/* Board */}
       <View style={styles.boardContainer}>
@@ -266,13 +241,17 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         />
         <GameButton
           testID="btn-hint"
-          label={`💡 Hint (${HINT_COST_COINS}🪙)`}
+          label={hintsRemaining > 0 ? "💡 Hint (1)" : "💡 Hint (Used)"}
           onPress={handleHint}
+          disabled={hintsRemaining <= 0}
           variant="ghost"
           size="sm"
           style={styles.controlBtn}
         />
       </View>
+
+      {/* Banner Ad */}
+      <AppBannerAd />
     </View>
   );
 };
@@ -281,21 +260,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: THEME.background,
-  },
-  movesRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  movesLabel: {
-    color: THEME.textMuted,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  movesCount: {
-    color: THEME.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
   },
   boardContainer: {
     flex: 1,

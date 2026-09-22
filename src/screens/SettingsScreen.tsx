@@ -22,6 +22,7 @@ import { loadSettings, saveSettings } from '../storage/GameStorage';
 import { GameSettings } from '../game/types';
 import { setSoundEnabled } from '../audio/AudioManager';
 import { setHapticsEnabled } from '../audio/HapticManager';
+import { AppBannerAd } from '../components/AppBannerAd';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -170,7 +171,13 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Version */}
       <Text style={styles.version}>Snake Puzzle v1.0.0</Text>
+
+      {/* Banner Ad */}
+      <View style={{ marginTop: 'auto' }}>
+        <AppBannerAd />
+      </View>
     </View>
   );
 };

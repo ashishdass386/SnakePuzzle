@@ -2,8 +2,8 @@ import { generateLevel } from '../src/game/LevelGenerator';
 import { GameEngine } from '../src/game/GameEngine';
 import { isSolvable, findHintSnake } from '../src/game/PuzzleSolver';
 import { canSnakeExit, getOccupiedCells } from '../src/game/Collision';
-import { calculateStars, calculateCoinsEarned, makeLevelProgress } from '../src/utils/helpers';
-import { loadProgress, updateLevelProgress, spendCoins } from '../src/storage/GameStorage';
+import { calculateStars, makeLevelProgress } from '../src/utils/helpers';
+import { loadProgress, updateLevelProgress } from '../src/storage/GameStorage';
 import { Direction } from '../src/game/types';
 import { getBoardTheme } from '../src/utils/themes';
 
@@ -112,9 +112,6 @@ describe('Snake Puzzle QA Engine Test Suite', () => {
       const stars = calculateStars(state.moveCount, state.hintsUsed, config.snakes.length);
       expect([1, 2, 3]).toContain(stars);
 
-      const coins = calculateCoinsEarned(stars);
-      expect(coins).toBeGreaterThanOrEqual(10);
-
       // Verify restart
       engine.restart(config);
       const restarted = engine.getState();
@@ -160,7 +157,6 @@ describe('Snake Puzzle QA Engine Test Suite', () => {
     // 1. Initial state
     const initialProgress = await loadProgress();
     expect(initialProgress.highestUnlockedLevel).toBe(1);
-    expect(initialProgress.coins).toBeGreaterThan(0);
 
     // 2. Play Level 1
     const lvl1Config = generateLevel(1);
@@ -185,14 +181,12 @@ describe('Snake Puzzle QA Engine Test Suite', () => {
     // 4. Complete Level 1 & Save Progress
     const state1 = engine1.getState();
     const stars1 = calculateStars(state1.moveCount, state1.hintsUsed, lvl1Config.snakes.length);
-    const coinsEarned1 = calculateCoinsEarned(stars1);
     const lp1 = makeLevelProgress(state1, stars1);
 
-    const updatedProgress = await updateLevelProgress(1, lp1, coinsEarned1);
+    const updatedProgress = await updateLevelProgress(1, lp1);
     expect(updatedProgress.highestUnlockedLevel).toBe(2);
     expect(updatedProgress.levels['1'].completed).toBe(true);
     expect(updatedProgress.levels['1'].stars).toBe(stars1);
-    expect(updatedProgress.coins).toBe(initialProgress.coins + coinsEarned1);
 
     // 5. Next Level (Level 2)
     const lvl2Config = generateLevel(2);

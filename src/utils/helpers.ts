@@ -8,9 +8,6 @@ import {
   STAR_2_MOVE_MULTIPLIER,
   HINTS_MAX_FOR_3_STARS,
   HINTS_MAX_FOR_2_STARS,
-  COINS_PER_LEVEL_COMPLETION,
-  COINS_BONUS_3_STARS,
-  COINS_BONUS_2_STARS,
 } from './constants';
 
 // ─── Star Calculation ─────────────────────────────────────────────────────────
@@ -35,16 +32,6 @@ export function calculateStars(
   return 1;
 }
 
-/**
- * Calculates coins earned from level completion.
- */
-export function calculateCoinsEarned(stars: number): number {
-  let coins = COINS_PER_LEVEL_COMPLETION;
-  if (stars === 3) coins += COINS_BONUS_3_STARS;
-  else if (stars === 2) coins += COINS_BONUS_2_STARS;
-  return coins;
-}
-
 // ─── Level Progress ───────────────────────────────────────────────────────────
 
 export function makeLevelProgress(
@@ -65,11 +52,6 @@ export function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-export function formatCoins(coins: number): string {
-  if (coins >= 1000) return `${(coins / 1000).toFixed(1)}k`;
-  return String(coins);
 }
 
 // ─── Array Utilities ─────────────────────────────────────────────────────────

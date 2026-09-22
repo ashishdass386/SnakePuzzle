@@ -32,14 +32,6 @@ export const ANIM_SHAKE_DURATION = 400;      // blocked shake
 export const ANIM_LEVEL_COMPLETE_DELAY = 600; // before showing level complete screen
 export const ANIM_HINT_PULSE_DURATION = 500; // hint highlight pulse
 
-// ─── Coin Economy ─────────────────────────────────────────────────────────────
-export const COINS_PER_LEVEL_COMPLETION = 10;
-export const COINS_BONUS_3_STARS = 5;
-export const COINS_BONUS_2_STARS = 2;
-export const HINT_COST_COINS = 5;
-export const REWARDED_AD_COINS = 50;
-export const STARTING_COINS = 30; // coins given on first launch
-
 // ─── Star System ─────────────────────────────────────────────────────────────
 // Stars are awarded based on move efficiency.
 // STAR_MOVE_MULTIPLIER: if moveCount <= snakeCount * multiplier → 3 stars
@@ -62,14 +54,14 @@ export const INITIAL_LEVEL = 1;
 // ─── Splash Screen ───────────────────────────────────────────────────────────
 export const SPLASH_DURATION_MS = 2500;
 
-// ─── AdMob Placeholders ──────────────────────────────────────────────────────
-// Replace these with real unit IDs before release.
+// ─── AdMob Configuration ───────────────────────────────────────────────────
 export const ADMOB_CONFIG = {
-  INTERSTITIAL_ANDROID: 'ca-app-pub-3940256099942544/1033173712', // test ID
-  INTERSTITIAL_IOS: 'ca-app-pub-3940256099942544/4411468910',     // test ID
-  REWARDED_ANDROID: 'ca-app-pub-3940256099942544/5224354917',     // test ID
-  REWARDED_IOS: 'ca-app-pub-3940256099942544/1712485313',         // test ID
-  SHOW_INTERSTITIAL_EVERY_N_LEVELS: 5,
+  APP_ID_ANDROID: 'ca-app-pub-7503400330650109~9977886732',
+  APP_ID_IOS: 'ca-app-pub-7503400330650109~9977886732',
+  INTERSTITIAL_ANDROID: 'ca-app-pub-7503400330650109/5253007811',
+  INTERSTITIAL_IOS: 'ca-app-pub-7503400330650109/5253007811',
+  BANNER_ANDROID: 'ca-app-pub-7503400330650109/9224042410',
+  BANNER_IOS: 'ca-app-pub-7503400330650109/9224042410',
 };
 
 // ─── Colors & Theme ──────────────────────────────────────────────────────────
@@ -92,7 +84,6 @@ export const THEME = {
   error: '#FF6B6B',
   warning: '#FFB703',
   star: '#FFD700',
-  coin: '#FFB703',
   shadow: 'rgba(0,0,0,0.5)',
   overlay: 'rgba(0,0,0,0.7)',
 };

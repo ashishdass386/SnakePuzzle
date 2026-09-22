@@ -130,7 +130,6 @@ export interface LevelProgress {
 
 export interface GameProgress {
   highestUnlockedLevel: number;
-  coins: number;
   levels: Record<string, LevelProgress>;
 }
 

@@ -27,7 +27,6 @@ export type RootStackParamList = {
   LevelComplete: {
     levelNumber: number;
     stars: number;
-    coinsEarned: number;
     moveCount: number;
   };
   LevelSelect: undefined;

@@ -112,3 +112,45 @@ jest.mock('react-native-screens', () => {
     SearchBar: View,
   };
 });
+
+jest.mock('react-native-google-mobile-ads', () => {
+  const React = require('react');
+  const View = require('react-native').View;
+  return {
+    __esModule: true,
+    default: jest.fn(() => ({
+      initialize: jest.fn().mockResolvedValue([]),
+    })),
+    BannerAd: (props) => React.createElement(View, props),
+    BannerAdSize: {
+      BANNER: 'BANNER',
+      LARGE_BANNER: 'LARGE_BANNER',
+      MEDIUM_RECTANGLE: 'MEDIUM_RECTANGLE',
+      FULL_BANNER: 'FULL_BANNER',
+      LEADERBOARD: 'LEADERBOARD',
+      ADAPTIVE_BANNER: 'ADAPTIVE_BANNER',
+      ANCHORED_ADAPTIVE_BANNER: 'ANCHORED_ADAPTIVE_BANNER',
+      INLINE_ADAPTIVE_BANNER: 'INLINE_ADAPTIVE_BANNER',
+    },
+    TestIds: {
+      BANNER: 'ca-app-pub-3940256099942544/6300978111',
+      INTERSTITIAL: 'ca-app-pub-3940256099942544/1033173712',
+      REWARDED: 'ca-app-pub-3940256099942544/5224354917',
+    },
+    InterstitialAd: {
+      createForAdRequest: jest.fn(() => ({
+        load: jest.fn(),
+        show: jest.fn().mockResolvedValue(undefined),
+        addAdEventListener: jest.fn(() => jest.fn()),
+      })),
+    },
+    AdEventType: {
+      LOADED: 'loaded',
+      ERROR: 'error',
+      OPENED: 'opened',
+      CLICKED: 'clicked',
+      CLOSED: 'closed',
+    },
+  };
+});
+

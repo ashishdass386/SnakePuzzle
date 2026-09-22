@@ -1,6 +1,6 @@
 /**
  * LevelCompleteScreen — shown after successfully clearing all snakes.
- * Shows stars, coins earned, and a Next Level button.
+ * Shows stars and a Next Level button.
  */
 
 import React, { useEffect } from 'react';
@@ -21,6 +21,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { THEME } from '../utils/constants';
 import { GameButton } from '../components/GameButton';
+import { showInterstitialAd } from '../ads/AdManager';
+import { AppBannerAd } from '../components/AppBannerAd';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LevelComplete'>;
 
@@ -61,19 +63,14 @@ const StarItem: React.FC<StarProps> = ({ earned, delay }) => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const LevelCompleteScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { levelNumber, stars, coinsEarned, moveCount } = route.params;
+  const { levelNumber, stars, moveCount } = route.params;
 
   const containerScale = useSharedValue(0.7);
   const containerOpacity = useSharedValue(0);
-  const coinScale = useSharedValue(0);
-  const coinOpacity = useSharedValue(0);
 
   useEffect(() => {
     containerScale.value = withSpring(1, { damping: 14, stiffness: 140 });
     containerOpacity.value = withTiming(1, { duration: 300 });
-
-    coinScale.value = withDelay(900, withSpring(1, { damping: 12 }));
-    coinOpacity.value = withDelay(900, withTiming(1, { duration: 300 }));
   }, []);
 
   const containerStyle = useAnimatedStyle(() => ({
@@ -81,13 +78,10 @@ export const LevelCompleteScreen: React.FC<Props> = ({ route, navigation }) => {
     opacity: containerOpacity.value,
   }));
 
-  const coinStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: coinScale.value }],
-    opacity: coinOpacity.value,
-  }));
-
   const handleNextLevel = () => {
-    navigation.replace('Game', { levelNumber: levelNumber + 1 });
+    showInterstitialAd(() => {
+      navigation.replace('Game', { levelNumber: levelNumber + 1 });
+    });
   };
 
   const handleHome = () => {
@@ -129,12 +123,6 @@ export const LevelCompleteScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Coins earned */}
-        <Animated.View style={[styles.coinsEarned, coinStyle]}>
-          <Text style={styles.coinsText}>+{coinsEarned}</Text>
-          <Text style={styles.coinsIcon}>🪙</Text>
-        </Animated.View>
-
         {/* Buttons */}
         <View style={styles.buttons}>
           <GameButton
@@ -154,6 +142,11 @@ export const LevelCompleteScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         </View>
       </Animated.View>
+
+      {/* Banner Ad */}
+      <View style={styles.bannerWrap}>
+        <AppBannerAd />
+      </View>
     </View>
   );
 };
@@ -211,7 +204,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 28,
     backgroundColor: THEME.surface,
     borderRadius: 16,
     padding: 16,
@@ -237,26 +230,6 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: THEME.border,
   },
-  coinsEarned: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: `${THEME.accentWarm}22`,
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: `${THEME.accentWarm}44`,
-  },
-  coinsText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: THEME.accentWarm,
-  },
-  coinsIcon: {
-    fontSize: 20,
-  },
   buttons: {
     width: '100%',
     gap: 10,
@@ -264,5 +237,10 @@ const styles = StyleSheet.create({
   },
   nextBtn: {
     width: '100%',
+  },
+  bannerWrap: {
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
   },
 });

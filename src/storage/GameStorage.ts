@@ -4,7 +4,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameProgress, GameSettings, LevelProgress } from '../game/types';
-import { STARTING_COINS, INITIAL_LEVEL } from '../utils/constants';
+import { INITIAL_LEVEL } from '../utils/constants';
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 
@@ -17,7 +17,6 @@ const KEYS = {
 
 const DEFAULT_PROGRESS: GameProgress = {
   highestUnlockedLevel: INITIAL_LEVEL,
-  coins: STARTING_COINS,
   levels: {},
 };
 
@@ -50,7 +49,6 @@ export async function saveProgress(progress: GameProgress): Promise<void> {
 export async function updateLevelProgress(
   levelNumber: number,
   levelProgress: LevelProgress,
-  coinsEarned: number,
 ): Promise<GameProgress> {
   const current = await loadProgress();
   const key = String(levelNumber);
@@ -67,7 +65,6 @@ export async function updateLevelProgress(
 
   const next: GameProgress = {
     ...current,
-    coins: current.coins + coinsEarned,
     highestUnlockedLevel: Math.max(
       current.highestUnlockedLevel,
       levelNumber + 1,
@@ -77,21 +74,6 @@ export async function updateLevelProgress(
 
   await saveProgress(next);
   return next;
-}
-
-export async function addCoins(amount: number): Promise<GameProgress> {
-  const current = await loadProgress();
-  const next = { ...current, coins: Math.max(0, current.coins + amount) };
-  await saveProgress(next);
-  return next;
-}
-
-export async function spendCoins(amount: number): Promise<boolean> {
-  const current = await loadProgress();
-  if (current.coins < amount) return false;
-  const next = { ...current, coins: current.coins - amount };
-  await saveProgress(next);
-  return true;
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

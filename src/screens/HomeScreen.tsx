@@ -25,16 +25,17 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { THEME } from '../utils/constants';
 import { loadProgress } from '../storage/GameStorage';
 import { GameButton } from '../components/GameButton';
+import { AppBannerAd } from '../components/AppBannerAd';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const { width } = Dimensions.get('window');
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [coins, setCoins] = useState(0);
   const [highestLevel, setHighestLevel] = useState(1);
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 12);
+  const bottomInset = Math.max(insets.bottom, 16);
 
   const titleY = useSharedValue(-50);
   const titleOpacity = useSharedValue(0);
@@ -43,13 +44,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     loadProgress().then(p => {
-      setCoins(p.coins);
       setHighestLevel(p.highestUnlockedLevel);
     });
 
     const unsubscribe = navigation.addListener('focus', () => {
       loadProgress().then(p => {
-        setCoins(p.coins);
         setHighestLevel(p.highestUnlockedLevel);
       });
     });
@@ -74,64 +73,61 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }));
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomInset }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Decorative background element */}
       <View style={styles.bgCircle1} />
       <View style={styles.bgCircle2} />
 
-      {/* Coin display top right */}
-      <View style={[styles.coinRow, { top: topInset + 12 }]}>
-        <Text style={styles.coinIcon}>🪙</Text>
-        <Text style={styles.coinText}>{coins}</Text>
+      {/* Main Content */}
+      <View style={styles.mainContent}>
+        {/* Logo / Title */}
+        <Animated.View style={[styles.titleSection, titleStyle]}>
+          <View style={styles.snakeMiniLogo}>
+            <View style={[styles.miniDot, { backgroundColor: '#FF6B6B' }]} />
+            <View style={[styles.miniDot, { backgroundColor: '#4ECDC4', width: 18, height: 18 }]} />
+            <View style={[styles.miniHead]} />
+          </View>
+          <Text style={styles.title}>SNAKE</Text>
+          <Text style={styles.titleAccent}>PUZZLE</Text>
+          <Text style={styles.tagline}>Tap · Slide · Escape</Text>
+        </Animated.View>
+
+        {/* Buttons */}
+        <Animated.View style={[styles.buttonSection, buttonsStyle]}>
+          <GameButton
+            testID="btn-play"
+            label="▶  PLAY"
+            onPress={() => navigation.navigate('Game', { levelNumber: highestLevel })}
+            variant="primary"
+            size="lg"
+            style={styles.playButton}
+          />
+
+          <View style={styles.secondaryRow}>
+            <GameButton
+              testID="btn-levels"
+              label="📋  LEVELS"
+              onPress={() => navigation.navigate('LevelSelect')}
+              variant="secondary"
+              size="md"
+              style={styles.halfButton}
+            />
+            <GameButton
+              testID="btn-settings"
+              label="⚙️  SETTINGS"
+              onPress={() => navigation.navigate('Settings')}
+              variant="secondary"
+              size="md"
+              style={styles.halfButton}
+            />
+          </View>
+        </Animated.View>
       </View>
 
-      {/* Logo / Title */}
-      <Animated.View style={[styles.titleSection, titleStyle]}>
-        <View style={styles.snakeMiniLogo}>
-          <View style={[styles.miniDot, { backgroundColor: '#FF6B6B' }]} />
-          <View style={[styles.miniDot, { backgroundColor: '#4ECDC4', width: 18, height: 18 }]} />
-          <View style={[styles.miniHead]} />
-        </View>
-        <Text style={styles.title}>SNAKE</Text>
-        <Text style={styles.titleAccent}>PUZZLE</Text>
-        <Text style={styles.tagline}>Tap · Slide · Escape</Text>
-      </Animated.View>
-
-      {/* Buttons */}
-      <Animated.View style={[styles.buttonSection, buttonsStyle]}>
-        <GameButton
-          testID="btn-play"
-          label="▶  PLAY"
-          onPress={() => navigation.navigate('Game', { levelNumber: highestLevel })}
-          variant="primary"
-          size="lg"
-          style={styles.playButton}
-        />
-
-        <View style={styles.secondaryRow}>
-          <GameButton
-            testID="btn-levels"
-            label="📋  LEVELS"
-            onPress={() => navigation.navigate('LevelSelect')}
-            variant="secondary"
-            size="md"
-            style={styles.halfButton}
-          />
-          <GameButton
-            testID="btn-settings"
-            label="⚙️  SETTINGS"
-            onPress={() => navigation.navigate('Settings')}
-            variant="secondary"
-            size="md"
-            style={styles.halfButton}
-          />
-        </View>
-      </Animated.View>
-
-      {/* Footer */}
-      <Text style={styles.footer}>Snake Puzzle v1.0</Text>
+      {/* Banner Ad */}
+      <AppBannerAd />
     </View>
   );
 };
@@ -140,9 +136,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: THEME.background,
+    paddingHorizontal: 24,
+  },
+  mainContent: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    width: '100%',
   },
   bgCircle1: {
     position: 'absolute',
@@ -163,26 +163,6 @@ const styles = StyleSheet.create({
     opacity: 0.04,
     bottom: -width * 0.2,
     right: -width * 0.15,
-  },
-  coinRow: {
-    position: 'absolute',
-    top: 52,
-    right: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.surfaceElevated,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  coinIcon: { fontSize: 16 },
-  coinText: {
-    color: THEME.accentWarm,
-    fontSize: 16,
-    fontWeight: '700',
   },
   titleSection: {
     alignItems: 'center',
