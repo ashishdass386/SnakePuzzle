@@ -1,0 +1,98 @@
+/**
+ * Global configurable constants for Snake Puzzle.
+ * Adjust these values to balance the game economy and feel.
+ */
+
+// ─── Snake Colors ─────────────────────────────────────────────────────────────
+// Each snake gets one of these colors, cycling if there are more snakes than colors.
+export const SNAKE_COLORS = [
+  '#FF6B6B', // coral red
+  '#4ECDC4', // teal
+  '#FFE66D', // yellow
+  '#A8E6CF', // mint green
+  '#FF8B94', // pink
+  '#6C5CE7', // purple
+  '#00B894', // emerald
+  '#FDCB6E', // orange
+];
+
+// ─── Board ────────────────────────────────────────────────────────────────────
+/** Fraction of the minimum screen dimension used for the board */
+export const BOARD_SIZE_FRACTION = 0.88;
+/** Gap (px) between cell inner content and cell boundary */
+export const CELL_PADDING = 3;
+/** Border radius of each cell (decorative background) */
+export const CELL_BORDER_RADIUS = 4;
+/** Gap (px) between cells */
+export const CELL_GAP = 2;
+
+// ─── Animation Durations (ms) ─────────────────────────────────────────────────
+export const ANIM_EXIT_DURATION = 350;       // snake slides off board
+export const ANIM_SHAKE_DURATION = 400;      // blocked shake
+export const ANIM_LEVEL_COMPLETE_DELAY = 600; // before showing level complete screen
+export const ANIM_HINT_PULSE_DURATION = 500; // hint highlight pulse
+
+// ─── Coin Economy ─────────────────────────────────────────────────────────────
+export const COINS_PER_LEVEL_COMPLETION = 10;
+export const COINS_BONUS_3_STARS = 5;
+export const COINS_BONUS_2_STARS = 2;
+export const HINT_COST_COINS = 5;
+export const REWARDED_AD_COINS = 50;
+export const STARTING_COINS = 30; // coins given on first launch
+
+// ─── Star System ─────────────────────────────────────────────────────────────
+// Stars are awarded based on move efficiency.
+// STAR_MOVE_MULTIPLIER: if moveCount <= snakeCount * multiplier → 3 stars
+export const STAR_3_MOVE_MULTIPLIER = 1.5; // moves <= snakes * 1.5 → 3 stars
+export const STAR_2_MOVE_MULTIPLIER = 2.5; // moves <= snakes * 2.5 → 2 stars
+// Hints used also reduce stars:
+export const HINTS_MAX_FOR_3_STARS = 0;    // no hints → still eligible for 3
+export const HINTS_MAX_FOR_2_STARS = 1;
+
+// ─── Hint System ─────────────────────────────────────────────────────────────
+export const HINT_HIGHLIGHT_DURATION_MS = 2000;
+
+// ─── Level Selection ─────────────────────────────────────────────────────────
+export const LEVELS_PER_PAGE = 20; // how many levels shown per "page" in level select
+
+// ─── Navigation Params ───────────────────────────────────────────────────────
+// (Referenced by AppNavigator types)
+export const INITIAL_LEVEL = 1;
+
+// ─── Splash Screen ───────────────────────────────────────────────────────────
+export const SPLASH_DURATION_MS = 2500;
+
+// ─── AdMob Placeholders ──────────────────────────────────────────────────────
+// Replace these with real unit IDs before release.
+export const ADMOB_CONFIG = {
+  INTERSTITIAL_ANDROID: 'ca-app-pub-3940256099942544/1033173712', // test ID
+  INTERSTITIAL_IOS: 'ca-app-pub-3940256099942544/4411468910',     // test ID
+  REWARDED_ANDROID: 'ca-app-pub-3940256099942544/5224354917',     // test ID
+  REWARDED_IOS: 'ca-app-pub-3940256099942544/1712485313',         // test ID
+  SHOW_INTERSTITIAL_EVERY_N_LEVELS: 5,
+};
+
+// ─── Colors & Theme ──────────────────────────────────────────────────────────
+export const THEME = {
+  background: '#0F0E17',
+  surface: '#1A1A2E',
+  surfaceElevated: '#16213E',
+  primary: '#7C3AED',      // violet
+  primaryLight: '#A855F7',
+  accent: '#06D6A0',       // mint
+  accentWarm: '#FFB703',   // amber
+  text: '#FFFFFE',
+  textSecondary: '#A8A8B3',
+  textMuted: '#666680',
+  boardBg: '#1E1E3F',
+  cellBg: '#2A2A4A',
+  cellBgAlt: '#252544',
+  border: '#3D3D6B',
+  success: '#06D6A0',
+  error: '#FF6B6B',
+  warning: '#FFB703',
+  star: '#FFD700',
+  coin: '#FFB703',
+  shadow: 'rgba(0,0,0,0.5)',
+  overlay: 'rgba(0,0,0,0.7)',
+};
