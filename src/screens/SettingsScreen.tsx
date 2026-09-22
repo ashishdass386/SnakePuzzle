@@ -7,12 +7,14 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Switch,
   TouchableOpacity,
   Linking,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { THEME } from '../utils/constants';
@@ -54,6 +56,10 @@ const SettingRow: React.FC<SettingRowProps> = ({
 );
 
 export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 12);
+  const bottomInset = Math.max(insets.bottom, 16);
+
   const [settings, setSettings] = useState<GameSettings>({
     soundEnabled: true,
     musicEnabled: true,
@@ -92,7 +98,9 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: topInset, paddingBottom: bottomInset }]}>
+      <StatusBar barStyle="light-content" />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -163,7 +171,7 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <Text style={styles.version}>Snake Puzzle v1.0.0</Text>
-    </SafeAreaView>
+    </View>
   );
 };
 

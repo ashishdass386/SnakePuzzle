@@ -13,15 +13,18 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   Dimensions,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { THEME, LEVELS_PER_PAGE } from '../utils/constants';
 import { loadProgress } from '../storage/GameStorage';
 import { GameProgress } from '../game/types';
 import { playSound } from '../audio/AudioManager';
+import { getBoardTheme } from '../utils/themes';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LevelSelect'>;
 
@@ -89,6 +92,10 @@ export const LevelSelectScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Game', { levelNumber });
   };
 
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 12);
+  const bottomInset = Math.max(insets.bottom, 16);
+
   if (!progress) {
     return (
       <View style={styles.loadingContainer}>
@@ -98,7 +105,9 @@ export const LevelSelectScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: topInset, paddingBottom: bottomInset }]}>
+      <StatusBar barStyle="light-content" />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -112,10 +121,31 @@ export const LevelSelectScreen: React.FC<Props> = ({ navigation }) => {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Page indicator */}
-      <Text style={styles.pageLabel}>
-        Levels {pageStart}–{pageEnd}
-      </Text>
+      {/* Page indicator & Theme Badge */}
+      {(() => {
+        const pageTheme = getBoardTheme(pageStart);
+        return (
+          <View style={styles.worldHeader}>
+            <View
+              style={[
+                styles.themeTag,
+                {
+                  backgroundColor: pageTheme.headerBadgeBg,
+                  borderColor: pageTheme.frameBorderColor,
+                },
+              ]}
+            >
+              <Text style={styles.themeTagIcon}>{pageTheme.icon}</Text>
+              <Text style={[styles.themeTagText, { color: pageTheme.headerTextColor }]}>
+                WORLD {pageTheme.worldNumber}: {pageTheme.name}
+              </Text>
+            </View>
+            <Text style={styles.pageLabel}>
+              Levels {pageStart}–{pageEnd}
+            </Text>
+          </View>
+        );
+      })()}
 
       {/* Level grid */}
       <FlatList
@@ -162,7 +192,7 @@ export const LevelSelectScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.pageBtnText}>Next ›</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -209,11 +239,32 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 2,
   },
+  worldHeader: {
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 4,
+  },
+  themeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    gap: 6,
+    borderWidth: 1,
+  },
+  themeTagIcon: {
+    fontSize: 13,
+  },
+  themeTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
   pageLabel: {
     color: THEME.textMuted,
     fontSize: 12,
     textAlign: 'center',
-    marginBottom: 12,
     letterSpacing: 1,
   },
   grid: {

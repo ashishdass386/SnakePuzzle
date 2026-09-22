@@ -3,28 +3,28 @@
  * Adjust these values to balance the game economy and feel.
  */
 
-// ─── Snake Colors ─────────────────────────────────────────────────────────────
-// Each snake gets one of these colors, cycling if there are more snakes than colors.
+// ─── Snake Colors (Vibrant Screenshot Palette) ────────────────────────────────
+// Hot Pink, Lime Green, Royal Purple, Lavender, Cobalt Blue, Golden Yellow, Cyan, Coral
 export const SNAKE_COLORS = [
-  '#FF6B6B', // coral red
-  '#4ECDC4', // teal
-  '#FFE66D', // yellow
-  '#A8E6CF', // mint green
-  '#FF8B94', // pink
-  '#6C5CE7', // purple
-  '#00B894', // emerald
-  '#FDCB6E', // orange
+  '#FF2079', // vibrant magenta pink
+  '#76FF03', // neon lime green
+  '#9333EA', // vivid royal purple
+  '#B682C4', // soft lavender mauve
+  '#2563EB', // electric cobalt blue
+  '#FFC700', // golden amber yellow
+  '#00E5FF', // electric cyan
+  '#FF5722', // bright coral orange
 ];
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 /** Fraction of the minimum screen dimension used for the board */
-export const BOARD_SIZE_FRACTION = 0.88;
+export const BOARD_SIZE_FRACTION = 0.90;
 /** Gap (px) between cell inner content and cell boundary */
-export const CELL_PADDING = 3;
+export const CELL_PADDING = 0;
 /** Border radius of each cell (decorative background) */
-export const CELL_BORDER_RADIUS = 4;
-/** Gap (px) between cells */
-export const CELL_GAP = 2;
+export const CELL_BORDER_RADIUS = 0;
+/** Gap (px) between cells (0 for seamless connected worm bodies) */
+export const CELL_GAP = 0;
 
 // ─── Animation Durations (ms) ─────────────────────────────────────────────────
 export const ANIM_EXIT_DURATION = 350;       // snake slides off board

@@ -6,14 +6,20 @@
 import { Direction, Position, SnakePiece, BoardSize } from './types';
 
 /**
- * Returns the set of all occupied cells by non-exited snakes,
+ * Returns the set of all occupied cells by non-exited snakes and obstacles,
  * excluding the snake we are checking (so a snake doesn't block itself).
  */
 export function getOccupiedCells(
   snakes: SnakePiece[],
   excludeSnakeId: string,
+  blockedCells?: Position[],
 ): Set<string> {
   const occupied = new Set<string>();
+  if (blockedCells) {
+    for (const pos of blockedCells) {
+      occupied.add(posKey(pos));
+    }
+  }
   for (const snake of snakes) {
     if (snake.exited || snake.id === excludeSnakeId) continue;
     for (const cell of snake.cells) {
@@ -29,10 +35,7 @@ export function posKey(pos: Position): string {
 }
 
 /**
- * Given a snake's head and its direction, compute all cells
- * the snake would traverse if it slides forward until the board edge.
- *
- * Returns the cells in front of the snake head (not including head itself).
+ * Given a snake and its direction, compute all cells in front of the head.
  */
 export function getCellsInFront(
   snake: SnakePiece,
@@ -40,28 +43,15 @@ export function getCellsInFront(
 ): Position[] {
   const head = snake.cells[0];
   const cells: Position[] = [];
+  const delta = directionDelta(snake.direction);
 
-  switch (snake.direction) {
-    case Direction.UP:
-      for (let r = head.row - 1; r >= 0; r--) {
-        cells.push({ row: r, col: head.col });
-      }
-      break;
-    case Direction.DOWN:
-      for (let r = head.row + 1; r < boardSize.rows; r++) {
-        cells.push({ row: r, col: head.col });
-      }
-      break;
-    case Direction.LEFT:
-      for (let c = head.col - 1; c >= 0; c--) {
-        cells.push({ row: head.row, col: c });
-      }
-      break;
-    case Direction.RIGHT:
-      for (let c = head.col + 1; c < boardSize.cols; c++) {
-        cells.push({ row: head.row, col: c });
-      }
-      break;
+  let r = head.row + delta.row;
+  let c = head.col + delta.col;
+
+  while (r >= 0 && r < boardSize.rows && c >= 0 && c < boardSize.cols) {
+    cells.push({ row: r, col: c });
+    r += delta.row;
+    c += delta.col;
   }
 
   return cells;
@@ -70,53 +60,31 @@ export function getCellsInFront(
 /**
  * Checks whether a snake can exit the board.
  *
- * A snake can exit when:
- * 1. Every cell directly in front of its entire body (in its direction) is empty.
- * 2. It reaches the board edge.
- *
- * For a multi-cell snake, ALL cells along the exit path must be clear
- * until the last body cell leaves the board.
+ * A snake can exit when every cell directly in front of ALL its body segments
+ * (in its direction of movement) is clear of obstacles and other snakes.
  */
 export function canSnakeExit(
   snake: SnakePiece,
   allSnakes: SnakePiece[],
   boardSize: BoardSize,
 ): boolean {
-  const occupied = getOccupiedCells(allSnakes, snake.id);
+  const occupied = getOccupiedCells(allSnakes, snake.id, boardSize.blockedCells);
+  const delta = directionDelta(snake.direction);
 
-  // We need the path for the HEAD to exit (reach the board edge and beyond).
-  // The tail needs to clear its current position too.
-  // Simple rule: ALL cells in front of the head until (and past) board edge must be free.
-  const head = snake.cells[0];
+  for (const cell of snake.cells) {
+    let r = cell.row + delta.row;
+    let c = cell.col + delta.col;
 
-  switch (snake.direction) {
-    case Direction.UP: {
-      for (let r = head.row - 1; r >= 0; r--) {
-        if (occupied.has(posKey({ row: r, col: head.col }))) return false;
+    while (r >= 0 && r < boardSize.rows && c >= 0 && c < boardSize.cols) {
+      if (occupied.has(posKey({ row: r, col: c }))) {
+        return false;
       }
-      return true;
+      r += delta.row;
+      c += delta.col;
     }
-    case Direction.DOWN: {
-      for (let r = head.row + 1; r < boardSize.rows; r++) {
-        if (occupied.has(posKey({ row: r, col: head.col }))) return false;
-      }
-      return true;
-    }
-    case Direction.LEFT: {
-      for (let c = head.col - 1; c >= 0; c--) {
-        if (occupied.has(posKey({ row: head.row, col: c }))) return false;
-      }
-      return true;
-    }
-    case Direction.RIGHT: {
-      for (let c = head.col + 1; c < boardSize.cols; c++) {
-        if (occupied.has(posKey({ row: head.row, col: c }))) return false;
-      }
-      return true;
-    }
-    default:
-      return false;
   }
+
+  return true;
 }
 
 /**

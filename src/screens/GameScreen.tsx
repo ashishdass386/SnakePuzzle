@@ -15,10 +15,12 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Alert,
   TouchableOpacity,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { GameEngine } from '../game/GameEngine';
@@ -39,6 +41,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 
 export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const { levelNumber } = route.params;
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 12);
+  const bottomInset = Math.max(insets.bottom, 16);
 
   // ── Game state ────────────────────────────────────────────────────────────
 
@@ -217,8 +222,15 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LevelHeader levelNumber={levelNumber} coins={coins} />
+    <View style={[styles.container, { paddingTop: topInset, paddingBottom: bottomInset }]}>
+      <StatusBar barStyle="light-content" />
+
+      <LevelHeader
+        levelNumber={levelNumber}
+        coins={coins}
+        theme={levelConfig.theme}
+        shapeType={levelConfig.boardSize.shapeType}
+      />
 
       {/* Move counter */}
       <View style={styles.movesRow}>
@@ -232,7 +244,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           snakes={snakes}
           boardRows={levelConfig.boardSize.rows}
           boardCols={levelConfig.boardSize.cols}
+          blockedCells={levelConfig.boardSize.blockedCells}
+          theme={levelConfig.theme}
           snakeCommands={snakeCommands}
+          insetsTop={topInset}
+          insetsBottom={bottomInset}
           onSnakeTap={handleSnakeTap}
           onSnakeExitComplete={handleExitComplete}
         />
@@ -257,7 +273,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.controlBtn}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

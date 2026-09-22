@@ -1,20 +1,17 @@
 /**
- * GameBoard — the puzzle grid with snakes overlaid.
- *
- * Layout:
- * - Renders the grid background (GameCell rows × cols).
- * - Positions each Snake absolutely on top.
- * - Computes cell size dynamically from available space.
- * - Passes animation commands down to each Snake.
+ * GameBoard — borderless, seamless canvas where vibrant snakes live freely
+ * without boxed frame borders, side trims, or corner brackets.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { SnakePiece } from '../game/types';
-import { THEME, BOARD_SIZE_FRACTION, CELL_GAP } from '../utils/constants';
+import { SnakePiece, Position } from '../game/types';
+import { CELL_GAP } from '../utils/constants';
+import { BoardThemeConfig, getBoardTheme } from '../utils/themes';
 import { GameCell } from './GameCell';
 import { Snake, SnakeAnimationCommand } from './Snake';
 import { range } from '../utils/helpers';
+import { posKey } from '../game/Collision';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,21 +19,35 @@ interface GameBoardProps {
   snakes: SnakePiece[];
   boardRows: number;
   boardCols: number;
+  blockedCells?: Position[];
+  theme?: BoardThemeConfig;
   snakeCommands: Record<string, SnakeAnimationCommand>;
+  insetsTop?: number;
+  insetsBottom?: number;
   onSnakeTap: (snakeId: string) => void;
   onSnakeExitComplete?: (snakeId: string) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function computeCellSize(rows: number, cols: number): number {
+function computeCellSize(
+  rows: number,
+  cols: number,
+  insetsTop: number = 0,
+  insetsBottom: number = 0,
+): number {
   const { width, height } = Dimensions.get('window');
-  const minDim = Math.min(width, height);
-  const boardPx = minDim * BOARD_SIZE_FRACTION;
-  // Cell size must fit both rows and cols
-  const byWidth = (boardPx - CELL_GAP * (cols + 1)) / cols;
-  const byHeight = (boardPx - CELL_GAP * (rows + 1)) / rows;
-  return Math.floor(Math.min(byWidth, byHeight));
+  const maxBoardWidth = width - 24;
+  const reservedVertical = insetsTop + insetsBottom + 180;
+  const maxBoardHeight = Math.max(180, height - reservedVertical);
+
+  const availableGridWidth = maxBoardWidth - CELL_GAP * (cols - 1);
+  const availableGridHeight = maxBoardHeight - CELL_GAP * (rows - 1);
+
+  const cellW = availableGridWidth / cols;
+  const cellH = availableGridHeight / rows;
+
+  return Math.floor(Math.max(16, Math.min(cellW, cellH)));
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -45,60 +56,90 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   snakes,
   boardRows,
   boardCols,
+  blockedCells = [],
+  theme,
   snakeCommands,
+  insetsTop = 0,
+  insetsBottom = 0,
   onSnakeTap,
   onSnakeExitComplete,
 }) => {
-  const cellSize = computeCellSize(boardRows, boardCols);
-  const boardPadding = CELL_GAP;
-  const boardWidth = boardCols * cellSize + CELL_GAP * (boardCols + 1);
-  const boardHeight = boardRows * cellSize + CELL_GAP * (boardRows + 1);
+  const currentTheme = theme ?? getBoardTheme(1);
+  const cellSize = computeCellSize(boardRows, boardCols, insetsTop, insetsBottom);
+  const boardPadding = 0; // Completely borderless — 0px padding
+
+  const gridWidth = boardCols * cellSize + CELL_GAP * (boardCols - 1);
+  const gridHeight = boardRows * cellSize + CELL_GAP * (boardRows - 1);
+
+  const blockedSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const pos of blockedCells) {
+      set.add(posKey(pos));
+    }
+    return set;
+  }, [blockedCells]);
 
   return (
-    <View
-      style={[
-        styles.board,
-        {
-          width: boardWidth,
-          height: boardHeight,
-        },
-      ]}
-    >
-      {/* Grid background */}
-      <View style={styles.gridContainer} pointerEvents="none">
-        {range(boardRows).map(row => (
-          <View key={`row-${row}`} style={styles.gridRow}>
-            {range(boardCols).map(col => (
-              <GameCell
-                key={`cell-${row}-${col}`}
-                size={cellSize}
-                row={row}
-                col={col}
-              />
-            ))}
-          </View>
-        ))}
-      </View>
+    <View style={styles.outerWrapper}>
+      {/* Seamless Borderless Playfield */}
+      <View
+        style={[
+          styles.boardCanvas,
+          {
+            width: gridWidth,
+            height: gridHeight,
+          },
+        ]}
+      >
+        {/* Ambient Guide Dots Layer */}
+        <View
+          style={[
+            styles.gridContainer,
+            {
+              width: gridWidth,
+              height: gridHeight,
+            },
+          ]}
+          pointerEvents="none"
+        >
+          {range(boardRows).map(row => (
+            <View key={`row-${row}`} style={styles.gridRow}>
+              {range(boardCols).map(col => {
+                const isBlocked = blockedSet.has(posKey({ row, col }));
+                return (
+                  <GameCell
+                    key={`cell-${row}-${col}`}
+                    size={cellSize}
+                    row={row}
+                    col={col}
+                    theme={currentTheme}
+                    isBlocked={isBlocked}
+                  />
+                );
+              })}
+            </View>
+          ))}
+        </View>
 
-      {/* Snakes overlay */}
-      {snakes.map(snake => {
-        if (snake.exited && snakeCommands[snake.id] !== 'exit') {
-          // Don't render fully exited snakes (animation done)
-          return null;
-        }
-        return (
-          <Snake
-            key={snake.id}
-            snake={snake}
-            cellSize={cellSize}
-            boardPadding={boardPadding}
-            boardSize={{ rows: boardRows, cols: boardCols }}
-            animCommand={snakeCommands[snake.id] ?? 'idle'}
-            onTap={onSnakeTap}
-            onExitComplete={onSnakeExitComplete}
-          />
-        );
-      })}
+        {/* Snakes overlay */}
+        {snakes.map(snake => {
+          if (snake.exited && snakeCommands[snake.id] !== 'exit') {
+            return null;
+          }
+          return (
+            <Snake
+              key={snake.id}
+              snake={snake}
+              cellSize={cellSize}
+              boardPadding={boardPadding}
+              boardSize={{ rows: boardRows, cols: boardCols }}
+              animCommand={snakeCommands[snake.id] ?? 'idle'}
+              onTap={onSnakeTap}
+              onExitComplete={onSnakeExitComplete}
+            />
+          );
+        })}
+      </View>
     </View>
   );
 };
@@ -106,27 +147,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  board: {
-    backgroundColor: THEME.boardBg,
-    borderRadius: 20,
-    padding: CELL_GAP,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    overflow: 'hidden',
+  outerWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boardCanvas: {
+    backgroundColor: 'transparent',
+    overflow: 'visible',
+    position: 'relative',
   },
   gridContainer: {
     position: 'absolute',
-    top: CELL_GAP,
-    left: CELL_GAP,
+    top: 0,
+    left: 0,
   },
   gridRow: {
     flexDirection: 'row',
     gap: CELL_GAP,
-    marginBottom: CELL_GAP,
   },
 });

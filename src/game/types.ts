@@ -36,11 +36,39 @@ export interface SnakePiece {
   length: number;
 }
 
+import { BoardThemeConfig } from '../utils/themes';
+
+// ─── Board Shape & Obstacles ──────────────────────────────────────────────────
+
+export type BoardShapeType =
+  | 'rectangle'
+  | 'cross'
+  | 'diamond'
+  | 'arrow'
+  | 'heart'
+  | 'ring'
+  | 'hourglass'
+  | 'pyramid'
+  | 't_shape'
+  | 'u_shape'
+  | 'zigzag'
+  | 'stairs'
+  | 'butterfly'
+  | 'castle'
+  | 'compact';
+
+export interface BoardShape {
+  type: BoardShapeType;
+  blockedCells: Position[]; // Cells outside the shape or obstacle cells
+}
+
 // ─── Board ────────────────────────────────────────────────────────────────────
 
 export interface BoardSize {
   rows: number;
   cols: number;
+  blockedCells?: Position[];
+  shapeType?: BoardShapeType;
 }
 
 // ─── Game State ───────────────────────────────────────────────────────────────
@@ -62,6 +90,7 @@ export interface LevelConfig {
   boardSize: BoardSize;
   snakes: SnakePiece[];
   seed: number;
+  theme?: BoardThemeConfig;
 }
 
 // ─── Tap Result ───────────────────────────────────────────────────────────────
@@ -86,7 +115,7 @@ export interface DifficultyConfig {
   maxSnakes: number;
   minSnakeLength: number;
   maxSnakeLength: number;
-  /** Max solver depth (limits BFS search space) */
+  targetFillRate: number; // e.g. 0.75 - 0.95
   maxSolverDepth: number;
 }
 

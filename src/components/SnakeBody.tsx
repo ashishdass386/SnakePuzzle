@@ -1,90 +1,175 @@
 /**
- * SnakeBody — renders a single body segment of the snake.
+ * SnakeBody — renders a seamless, continuous smooth snake body segment
+ * without cut lines or ribbed textures.
  */
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Direction } from '../game/types';
+
+export type SegmentType =
+  | 'straight_h'
+  | 'straight_v'
+  | 'corner_up_right'
+  | 'corner_up_left'
+  | 'corner_down_right'
+  | 'corner_down_left';
 
 interface SnakeBodyProps {
-  direction: Direction;
   color: string;
   size: number;
-  /** Whether this is the tail segment (slightly tapered) */
-  isTail?: boolean;
+  segmentType: SegmentType;
   isHinted?: boolean;
 }
 
-// For body segments, the segment fills the cell
-// but we make it slightly inset to show a "connected" look.
-
 export const SnakeBody: React.FC<SnakeBodyProps> = ({
-  direction,
   color,
   size,
-  isTail = false,
+  segmentType,
   isHinted = false,
 }) => {
-  const isVertical = direction === Direction.UP || direction === Direction.DOWN;
+  const thickness = size * 0.84;
+  const offset = (size - thickness) / 2;
 
-  const width = isVertical ? size * 0.72 : size;
-  const height = isVertical ? size : size * 0.72;
-
-  // Tail is slightly more tapered/rounded
-  const tailBorderRadius = isTail ? size * 0.36 : size * 0.2;
-
-  return (
-    <View
-      style={[
-        styles.container,
-        { width: size, height: size },
-      ]}
-    >
-      <View
-        style={[
-          styles.segment,
-          {
-            width,
-            height,
-            backgroundColor: color,
-            borderRadius: isTail ? tailBorderRadius : size * 0.18,
-            opacity: isTail ? 0.85 : 1,
-            shadowColor: isHinted ? '#FFD700' : '#000',
-            shadowOpacity: isHinted ? 0.7 : 0.25,
-            shadowRadius: isHinted ? 8 : 3,
-          },
-        ]}
-      >
-        {/* Scale pattern highlight */}
+  // ─── 1. Straight Horizontal Segment ──────────────────────────────────────────
+  if (segmentType === 'straight_h') {
+    return (
+      <View style={[styles.container, { width: size, height: size }]}>
         <View
           style={[
-            styles.highlight,
+            styles.straightH,
             {
-              width: isVertical ? width * 0.55 : width * 0.7,
-              height: isVertical ? height * 0.4 : height * 0.55,
+              backgroundColor: color,
+              width: size + 1, // Slight overlap for seamless connection
+              height: thickness,
+              shadowColor: isHinted ? '#FFD700' : '#000',
+              shadowOpacity: isHinted ? 0.7 : 0.25,
+              shadowRadius: isHinted ? 8 : 2,
             },
           ]}
         />
       </View>
+    );
+  }
+
+  // ─── 2. Straight Vertical Segment ────────────────────────────────────────────
+  if (segmentType === 'straight_v') {
+    return (
+      <View style={[styles.container, { width: size, height: size }]}>
+        <View
+          style={[
+            styles.straightV,
+            {
+              backgroundColor: color,
+              width: thickness,
+              height: size + 1,
+              shadowColor: isHinted ? '#FFD700' : '#000',
+              shadowOpacity: isHinted ? 0.7 : 0.25,
+              shadowRadius: isHinted ? 8 : 2,
+            },
+          ]}
+        />
+      </View>
+    );
+  }
+
+  // ─── 3. 90° Corner Bends ─────────────────────────────────────────────────────
+  return (
+    <View style={[styles.container, { width: size, height: size }]}>
+      <View
+        style={[
+          styles.cornerOuter,
+          {
+            backgroundColor: color,
+            shadowColor: isHinted ? '#FFD700' : '#000',
+            shadowOpacity: isHinted ? 0.7 : 0.25,
+            shadowRadius: isHinted ? 8 : 2,
+          },
+          getCornerShapeStyle(segmentType, size, thickness, offset),
+        ]}
+      />
     </View>
   );
 };
+
+// ─── Corner Style Helpers ─────────────────────────────────────────────────────
+
+function getCornerShapeStyle(
+  type: SegmentType,
+  size: number,
+  thickness: number,
+  offset: number,
+) {
+  const cornerRadius = size * 0.42;
+
+  switch (type) {
+    case 'corner_up_right':
+      return {
+        top: 0,
+        right: 0,
+        width: size - offset + 0.5,
+        height: size - offset + 0.5,
+        borderTopRightRadius: cornerRadius,
+        borderBottomLeftRadius: thickness * 0.35,
+      };
+    case 'corner_up_left':
+      return {
+        top: 0,
+        left: 0,
+        width: size - offset + 0.5,
+        height: size - offset + 0.5,
+        borderTopLeftRadius: cornerRadius,
+        borderBottomRightRadius: thickness * 0.35,
+      };
+    case 'corner_down_right':
+      return {
+        bottom: 0,
+        right: 0,
+        width: size - offset + 0.5,
+        height: size - offset + 0.5,
+        borderBottomRightRadius: cornerRadius,
+        borderTopLeftRadius: thickness * 0.35,
+      };
+    case 'corner_down_left':
+      return {
+        bottom: 0,
+        left: 0,
+        width: size - offset + 0.5,
+        height: size - offset + 0.5,
+        borderBottomLeftRadius: cornerRadius,
+        borderTopRightRadius: thickness * 0.35,
+      };
+    default:
+      return {};
+  }
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  segment: {
+  straightH: {
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    shadowOffset: { width: 0, height: 2 },
+    justifyContent: 'center',
+    position: 'relative',
     elevation: 3,
-    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 1 },
   },
-  highlight: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 999,
-    marginTop: 4,
+  straightV: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  cornerOuter: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
 });

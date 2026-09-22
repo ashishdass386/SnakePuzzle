@@ -1,13 +1,7 @@
 /**
  * Snake — composed snake component with Reanimated exit and shake animations.
  *
- * This component:
- * 1. Renders a snake's head + body segments at their grid positions.
- * 2. Animates exit (slide off board) when tapped and path is clear.
- * 3. Animates a shake when blocked.
- * 4. Highlights when hinted.
- *
- * The snake is positioned absolutely on the board using grid coordinates.
+ * Renders head, ribbed body segments (straight & corner turns), and tapered cone tail.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -22,11 +16,12 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-import { SnakePiece, Direction } from '../game/types';
-import { SNAKE_COLORS, ANIM_EXIT_DURATION, ANIM_SHAKE_DURATION, THEME, CELL_GAP } from '../utils/constants';
+import { SnakePiece, Direction, Position } from '../game/types';
+import { SNAKE_COLORS, ANIM_EXIT_DURATION, ANIM_SHAKE_DURATION, CELL_GAP } from '../utils/constants';
 import { getExitOffset, gridToPixel } from '../game/Movement';
 import { SnakeHead } from './SnakeHead';
-import { SnakeBody } from './SnakeBody';
+import { SnakeBody, SegmentType } from './SnakeBody';
+import { SnakeTail } from './SnakeTail';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,7 +48,7 @@ export const Snake: React.FC<SnakeProps> = ({
   onTap,
   onExitComplete,
 }) => {
-  const color = SNAKE_COLORS[snake.colorIndex];
+  const color = SNAKE_COLORS[snake.colorIndex % SNAKE_COLORS.length];
   const cellGap = CELL_GAP;
   const step = cellSize + cellGap;
 
@@ -91,7 +86,7 @@ export const Snake: React.FC<SnakeProps> = ({
         duration: ANIM_EXIT_DURATION,
       });
 
-      // Notify parent after animation finishes (setTimeout is on JS thread)
+      // Notify parent after animation finishes
       if (onExitComplete) {
         const id = snake.id;
         setTimeout(() => onExitComplete(id), ANIM_EXIT_DURATION + 50);
@@ -99,7 +94,7 @@ export const Snake: React.FC<SnakeProps> = ({
     }
 
     if (animCommand === 'blocked') {
-      const shakeAmt = cellSize * 0.08;
+      const shakeAmt = cellSize * 0.1;
       translateX.value = withSequence(
         withTiming(-shakeAmt, { duration: 60 }),
         withTiming(shakeAmt, { duration: 60 }),
@@ -142,7 +137,6 @@ export const Snake: React.FC<SnakeProps> = ({
 
   // ── Layout ───────────────────────────────────────────────────────────────
 
-  // Compute the bounding box of all cells
   const minRow = Math.min(...snake.cells.map(c => c.row));
   const minCol = Math.min(...snake.cells.map(c => c.col));
 
@@ -155,6 +149,7 @@ export const Snake: React.FC<SnakeProps> = ({
   const containerHeight = (maxRow - minRow) * step + cellSize;
 
   const isHinted = animCommand === 'hint';
+  const totalLength = snake.cells.length;
 
   return (
     <Animated.View
@@ -178,7 +173,7 @@ export const Snake: React.FC<SnakeProps> = ({
         {/* Render each segment */}
         {snake.cells.map((cell, index) => {
           const isHead = index === 0;
-          const isTail = index === snake.cells.length - 1;
+          const isTail = index === totalLength - 1 && totalLength > 1;
 
           const localLeft = (cell.col - minCol) * step;
           const localTop = (cell.row - minRow) * step;
@@ -203,13 +198,20 @@ export const Snake: React.FC<SnakeProps> = ({
                   color={color}
                   size={cellSize}
                   isHinted={isHinted}
+                  isSingleCell={totalLength === 1}
+                />
+              ) : isTail ? (
+                <SnakeTail
+                  tipDirection={getTailTipDirection(cell, snake.cells[index - 1])}
+                  color={color}
+                  size={cellSize}
+                  isHinted={isHinted}
                 />
               ) : (
                 <SnakeBody
-                  direction={snake.direction}
                   color={color}
                   size={cellSize}
-                  isTail={isTail}
+                  segmentType={getBodySegmentType(cell, snake.cells[index - 1], snake.cells[index + 1])}
                   isHinted={isHinted}
                 />
               )}
@@ -220,6 +222,53 @@ export const Snake: React.FC<SnakeProps> = ({
     </Animated.View>
   );
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getTailTipDirection(current: Position, prev: Position): Direction {
+  const dr = current.row - prev.row;
+  const dc = current.col - prev.col;
+
+  if (dr === 1) return Direction.DOWN;
+  if (dr === -1) return Direction.UP;
+  if (dc === 1) return Direction.RIGHT;
+  if (dc === -1) return Direction.LEFT;
+  return Direction.DOWN;
+}
+
+function getBodySegmentType(
+  current: Position,
+  prev: Position,
+  next: Position,
+): SegmentType {
+  const rPrev = prev.row - current.row;
+  const cPrev = prev.col - current.col;
+  const rNext = next.row - current.row;
+  const cNext = next.col - current.col;
+
+  // Straight Horizontal
+  if (rPrev === 0 && rNext === 0) {
+    return 'straight_h';
+  }
+
+  // Straight Vertical
+  if (cPrev === 0 && cNext === 0) {
+    return 'straight_v';
+  }
+
+  // Corner Elbows
+  const hasUp = rPrev === -1 || rNext === -1;
+  const hasDown = rPrev === 1 || rNext === 1;
+  const hasLeft = cPrev === -1 || cNext === -1;
+  const hasRight = cPrev === 1 || cNext === 1;
+
+  if (hasUp && hasRight) return 'corner_up_right';
+  if (hasUp && hasLeft) return 'corner_up_left';
+  if (hasDown && hasRight) return 'corner_down_right';
+  if (hasDown && hasLeft) return 'corner_down_left';
+
+  return 'straight_h';
+}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

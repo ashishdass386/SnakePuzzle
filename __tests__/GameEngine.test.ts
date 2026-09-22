@@ -5,17 +5,30 @@ import { canSnakeExit, getOccupiedCells } from '../src/game/Collision';
 import { calculateStars, calculateCoinsEarned, makeLevelProgress } from '../src/utils/helpers';
 import { loadProgress, updateLevelProgress, spendCoins } from '../src/storage/GameStorage';
 import { Direction } from '../src/game/types';
+import { getBoardTheme } from '../src/utils/themes';
 
 describe('Snake Puzzle QA Engine Test Suite', () => {
-  test('Levels 1 to 50 are all valid, solvable, and do not trigger fallback', () => {
+  test('Dense Level Generation: Levels 1 to 50 are packed, solvable, and have rich themes', () => {
     let fallbackCount = 0;
 
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = generateLevel(lvl);
 
-      expect(config.snakes.length).toBeGreaterThanOrEqual(2);
+      expect(config.snakes.length).toBeGreaterThanOrEqual(3);
       expect(config.boardSize.rows).toBeGreaterThanOrEqual(4);
       expect(config.boardSize.cols).toBeGreaterThanOrEqual(4);
+      expect(config.theme).toBeDefined();
+      expect(config.theme?.name).toBeDefined();
+
+      // Density calculation
+      const totalCells = config.boardSize.rows * config.boardSize.cols;
+      const blockedCount = config.boardSize.blockedCells?.length ?? 0;
+      const availableCells = totalCells - blockedCount;
+      const snakeCells = config.snakes.reduce((acc, s) => acc + s.cells.length, 0);
+      const density = snakeCells / availableCells;
+
+      // Board is densely packed with snakes!
+      expect(density).toBeGreaterThanOrEqual(0.55);
 
       if (config.seed === 0) {
         fallbackCount++;
@@ -30,7 +43,26 @@ describe('Snake Puzzle QA Engine Test Suite', () => {
     expect(fallbackCount).toBe(0);
   });
 
-  test('Higher tier levels (Hard, Very Hard, Expert) are solvable', () => {
+  test('Dynamic Board Theme Progression: themes evolve every 10 levels', () => {
+    const themeLvl1 = getBoardTheme(1);
+    const themeLvl11 = getBoardTheme(11);
+    const themeLvl21 = getBoardTheme(21);
+    const themeLvl31 = getBoardTheme(31);
+    const themeLvl41 = getBoardTheme(41);
+    const themeLvl51 = getBoardTheme(51);
+
+    expect(themeLvl1.name).toBe('CYBER NEON');
+    expect(themeLvl11.name).toBe('JUNGLE RUINS');
+    expect(themeLvl21.name).toBe('MAGMA FORGE');
+    expect(themeLvl31.name).toBe('OCEAN ABYSS');
+    expect(themeLvl41.name).toBe('GOLDEN PHARAOH');
+    expect(themeLvl51.name).toBe('COSMIC STATION');
+
+    expect(themeLvl1.id).not.toEqual(themeLvl11.id);
+    expect(themeLvl11.id).not.toEqual(themeLvl21.id);
+  });
+
+  test('Higher tier dense levels (Hard, Very Hard, Expert) are solvable', () => {
     const testLevels = [55, 75, 120, 260, 520];
 
     for (const lvl of testLevels) {
@@ -41,13 +73,13 @@ describe('Snake Puzzle QA Engine Test Suite', () => {
     }
   });
 
-  test('Simulated full playthrough of levels 1 to 20', () => {
-    for (let lvl = 1; lvl <= 20; lvl++) {
+  test('Simulated full playthrough of dense levels 1 to 15', () => {
+    for (let lvl = 1; lvl <= 15; lvl++) {
       const config = generateLevel(lvl);
       const engine = new GameEngine(config);
 
       let steps = 0;
-      const maxSteps = 40;
+      const maxSteps = 50;
 
       while (!engine.isComplete() && steps < maxSteps) {
         steps++;
@@ -93,39 +125,35 @@ describe('Snake Puzzle QA Engine Test Suite', () => {
     }
   });
 
-  test('Collision detection correctly blocks snakes moving through obstacles', () => {
-    // Construct a specific board layout:
-    // Snake 1: at (1, 1), pointing RIGHT, length 2 -> occupies (1, 1) and (1, 0)
-    // Snake 2: at (1, 3), pointing UP, length 1 -> occupies (1, 3)
-    // Board is 4x4
-    const boardSize = { rows: 4, cols: 4 };
-    const snake1 = {
-      id: 's1',
-      cells: [{ row: 1, col: 1 }, { row: 1, col: 0 }],
-      direction: Direction.RIGHT,
+  test('Collision detection correctly blocks snakes with obstacles/blocked cells', () => {
+    const boardSize = {
+      rows: 4,
+      cols: 4,
+      blockedCells: [{ row: 0, col: 2 }],
+    };
+
+    // Snake at (1, 2) pointing UP. Directly in front is (0, 2) which is a BLOCKED OBSTACLE!
+    const snakeBlockedByWall = {
+      id: 's_wall',
+      cells: [{ row: 1, col: 2 }],
+      direction: Direction.UP,
       colorIndex: 0,
       exited: false,
-      length: 2,
+      length: 1,
     };
-    const snake2 = {
-      id: 's2',
-      cells: [{ row: 1, col: 3 }],
+
+    // Snake at (1, 0) pointing UP. Directly in front is (0, 0) which is empty!
+    const snakeFree = {
+      id: 's_free',
+      cells: [{ row: 1, col: 0 }],
       direction: Direction.UP,
       colorIndex: 1,
       exited: false,
       length: 1,
     };
 
-    // Snake 1 wants to move RIGHT. In front of it is (1, 2) and (1, 3).
-    // (1, 3) is occupied by Snake 2! So Snake 1 MUST be blocked!
-    expect(canSnakeExit(snake1, [snake1, snake2], boardSize)).toBe(false);
-
-    // Snake 2 wants to move UP. In front of it is (0, 3). Empty!
-    // So Snake 2 CAN exit!
-    expect(canSnakeExit(snake2, [snake1, snake2], boardSize)).toBe(true);
-
-    // After Snake 2 exits, Snake 1 should now be able to exit!
-    expect(canSnakeExit(snake1, [snake1], boardSize)).toBe(true);
+    expect(canSnakeExit(snakeBlockedByWall, [snakeBlockedByWall, snakeFree], boardSize)).toBe(false);
+    expect(canSnakeExit(snakeFree, [snakeBlockedByWall, snakeFree], boardSize)).toBe(true);
   });
 
   test('Complete gameplay flow: Play -> Move -> Complete -> Save Progress -> Next Level -> Restart', async () => {

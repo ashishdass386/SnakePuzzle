@@ -1,18 +1,10 @@
 /**
  * PuzzleSolver — validates that every generated level is solvable.
  *
- * Algorithm: BFS over the space of possible snake-removal orders.
- * State = frozenset of remaining snake IDs.
- * At each state, try to exit each remaining snake.
- * If a snake can exit (given the current remaining snakes), recurse.
- * Success = all snakes removed.
- * Memoize visited states to avoid exponential blowup.
- *
- * Complexity: O(n! / k) in worst case but with memoization
- * it's much more tractable for n ≤ 8 snakes.
+ * Algorithm: DFS over snake-removal sequences with state memoization.
  */
 
-import { GameState, SnakePiece } from './types';
+import { GameState, SnakePiece, BoardSize } from './types';
 import { canSnakeExit } from './Collision';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -20,22 +12,21 @@ import { canSnakeExit } from './Collision';
 /**
  * Returns true if there exists at least one ordering of snake removals
  * that allows all snakes to exit the board.
- *
- * @param state  The current game state (snakes + board size)
- * @param maxDepth  Maximum recursion depth (safety limit)
  */
-export function isSolvable(state: GameState, maxDepth: number = 40): boolean {
+export function isSolvable(state: GameState, maxDepth: number = 200): boolean {
   const remainingIds = state.snakes
     .filter(s => !s.exited)
     .map(s => s.id);
 
   const visited = new Set<string>();
+  const counter = { evaluations: 0, maxEvaluations: 3000 };
 
   return dfs(
     remainingIds,
     state.snakes,
     state.boardSize,
     visited,
+    counter,
     maxDepth,
   );
 }
@@ -45,31 +36,33 @@ export function isSolvable(state: GameState, maxDepth: number = 40): boolean {
 function dfs(
   remaining: string[],
   allSnakes: SnakePiece[],
-  boardSize: { rows: number; cols: number },
+  boardSize: BoardSize,
   visited: Set<string>,
+  counter: { evaluations: number; maxEvaluations: number },
   depthLeft: number,
 ): boolean {
   // Base: all snakes removed → solved
   if (remaining.length === 0) return true;
-  // Depth limit exceeded
   if (depthLeft <= 0) return false;
+  if (counter.evaluations++ > counter.maxEvaluations) return false;
 
   // Create a state key (sorted IDs to canonicalize)
   const stateKey = [...remaining].sort().join('|');
   if (visited.has(stateKey)) return false;
   visited.add(stateKey);
 
-  // Current "live" snakes = all snakes that haven't exited yet
+  // Current "live" snakes
   const liveSnakes = allSnakes.filter(s => remaining.includes(s.id));
 
-  // Try removing each remaining snake
-  for (const candidateId of remaining) {
-    const candidate = liveSnakes.find(s => s.id === candidateId)!;
+  // Try removing each remaining snake (reverse order first as it aligns with construction)
+  for (let i = remaining.length - 1; i >= 0; i--) {
+    const candidateId = remaining[i];
+    const candidate = liveSnakes.find(s => s.id === candidateId);
+    if (!candidate) continue;
 
     if (canSnakeExit(candidate, liveSnakes, boardSize)) {
-      // Simulate removal: recurse without this snake
       const nextRemaining = remaining.filter(id => id !== candidateId);
-      if (dfs(nextRemaining, allSnakes, boardSize, visited, depthLeft - 1)) {
+      if (dfs(nextRemaining, allSnakes, boardSize, visited, counter, depthLeft - 1)) {
         return true;
       }
     }
@@ -83,8 +76,6 @@ function dfs(
 /**
  * Finds a snake that can currently exit the board.
  * Used by the hint system.
- *
- * Returns the snake ID or null if none can move.
  */
 export function findHintSnake(state: GameState): string | null {
   const activeSnakes = state.snakes.filter(s => !s.exited);

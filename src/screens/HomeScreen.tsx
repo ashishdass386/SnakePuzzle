@@ -10,7 +10,9 @@ import {
   Dimensions,
   TouchableOpacity,
   StatusBar,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -31,6 +33,8 @@ const { width } = Dimensions.get('window');
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [coins, setCoins] = useState(0);
   const [highestLevel, setHighestLevel] = useState(1);
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 12);
 
   const titleY = useSharedValue(-50);
   const titleOpacity = useSharedValue(0);
@@ -78,7 +82,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.bgCircle2} />
 
       {/* Coin display top right */}
-      <View style={styles.coinRow}>
+      <View style={[styles.coinRow, { top: topInset + 12 }]}>
         <Text style={styles.coinIcon}>🪙</Text>
         <Text style={styles.coinText}>{coins}</Text>
       </View>
