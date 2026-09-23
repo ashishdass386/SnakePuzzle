@@ -1,14 +1,4 @@
 /* eslint-disable no-undef */
-const mockSound = jest.fn().mockImplementation(() => ({
-  setVolume: jest.fn(),
-  play: jest.fn(cb => cb && cb(true)),
-  stop: jest.fn(cb => cb && cb()),
-  release: jest.fn(),
-}));
-mockSound.setCategory = jest.fn();
-mockSound.MAIN_BUNDLE = 0;
-
-jest.mock('react-native-sound', () => mockSound);
 
 jest.mock('react-native-gesture-handler', () => {
   const View = require('react-native').View;

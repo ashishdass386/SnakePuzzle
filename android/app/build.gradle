@@ -73,13 +73,14 @@ def enableProguardInReleaseBuilds = false
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 android {
+    buildStagingDirectory = file("C:/tmp/sp")
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.snakepuzzle.slayer"
+    namespace "com.snakepuzzle.slay"
     defaultConfig {
-        applicationId "com.snakepuzzle.slayer"
+        applicationId "com.snakepuzzle.slay"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

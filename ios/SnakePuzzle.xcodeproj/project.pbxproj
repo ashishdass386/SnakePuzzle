@@ -271,7 +271,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.snakepuzzle.slayer";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.snakepuzzle.slay";
 				PRODUCT_NAME = SnakePuzzle;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -300,7 +300,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.snakepuzzle.slayer";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.snakepuzzle.slay";
 				PRODUCT_NAME = SnakePuzzle;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
