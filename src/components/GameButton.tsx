@@ -17,7 +17,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { THEME } from '../utils/constants';
-import { playSound } from '../audio/AudioManager';
+// Audio disabled: removed playSound import
 import { triggerHaptic } from '../audio/HapticManager';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
@@ -67,7 +67,6 @@ export const GameButton: React.FC<GameButtonProps> = ({
 
   const handlePress = () => {
     if (disabled || loading) return;
-    playSound('button');
     triggerHaptic('light');
     onPress();
   };
