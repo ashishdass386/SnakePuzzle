@@ -32,7 +32,7 @@ import { SnakeAnimationCommand } from '../components/Snake';
 import { THEME, ANIM_LEVEL_COMPLETE_DELAY } from '../utils/constants';
 import { updateLevelProgress } from '../storage/GameStorage';
 import { calculateStars, makeLevelProgress } from '../utils/helpers';
-// import { playSound } from '../audio/AudioManager'; // removed audio
+import { playSound } from '../audio/AudioManager';
 import { triggerHaptic } from '../audio/HapticManager';
 import { showInterstitialAd } from '../ads/AdManager';
 import { AppBannerAd } from '../components/AppBannerAd';
