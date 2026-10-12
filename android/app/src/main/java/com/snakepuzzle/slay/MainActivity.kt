@@ -1,4 +1,4 @@
-package com.snakepuzzle
+package com.snakepuzzle.slay
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
